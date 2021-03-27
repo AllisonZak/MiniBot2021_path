@@ -4,8 +4,12 @@
 
 package frc.robot;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
@@ -28,6 +32,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryConfig;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryGenerator;
+import edu.wpi.first.wpilibj.trajectory.TrajectoryUtil;
 import edu.wpi.first.wpilibj.trajectory.constraint.DifferentialDriveVoltageConstraint;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -78,7 +83,8 @@ public class RobotContainer {
    * 
    * @return A SequentialCommand that sets up and executes a trajectory following Ramsete command
    */
-  private Command generateRamseteCommand() {
+  /*
+   private Command generateRamseteCommand() {
     var autoVoltageConstraint =
         new DifferentialDriveVoltageConstraint(
             new SimpleMotorFeedforward(DriveConstants.ksVolts, 
@@ -109,8 +115,18 @@ public class RobotContainer {
         ),
         new Pose2d(0.49, 0.55, new Rotation2d(0)),
         config);
+    */
+    private Command generateRamseteCommand() {
+      String trajectoryJSON = "paths/unknown.wpilib.json";
+      Trajectory exampleTrajectory = new Trajectory();
+      try {
+         Path trajectoryPath = Filesystem.getDeployDirectory().toPath().resolve(trajectoryJSON);
+         exampleTrajectory = TrajectoryUtil.fromPathweaverJson(trajectoryPath);
+      } catch (IOException ex) {
+         DriverStation.reportError("Unable to open trajectory: " + trajectoryJSON, ex.getStackTrace());
+      }
 
-    RamseteCommand ramseteCommand = new RamseteCommand(
+      RamseteCommand ramseteCommand = new RamseteCommand(
         exampleTrajectory,
         m_drivetrain::getPose,
         new RamseteController(AutoConstants.kRamseteB, AutoConstants.kRamseteZeta),
@@ -122,17 +138,29 @@ public class RobotContainer {
         m_drivetrain::tankDriveVolts,
         m_drivetrain);
 
-    m_drivetrain.resetOdometry(exampleTrajectory.getInitialPose());
+        //return ramseteCommand;
+
+        m_drivetrain.resetOdometry(exampleTrajectory.getInitialPose());
+
+        final Trajectory finalTrajectory = exampleTrajectory;
+        return new InstantCommand(() -> m_drivetrain.resetOdometry(finalTrajectory.getInitialPose()), m_drivetrain)
+            .andThen(ramseteCommand)
+            //.andThen(m_drivetrain::stopDrivetrain, m_drivetrain);
+            .andThen(new InstantCommand(()-> m_drivetrain.tankDriveVolts(0, 0),m_drivetrain));
+
+
+    //m_drivetrain.resetOdometry(exampleTrajectory.getInitialPose());
 
     // Set up a sequence of commands
     // First, we want to reset the drivetrain odometry
-    return new InstantCommand(() -> m_drivetrain.resetOdometry(exampleTrajectory.getInitialPose()), m_drivetrain)
+    //return new InstantCommand(() -> m_drivetrain.resetOdometry(exampleTrajectory.getInitialPose()), m_drivetrain)
         // next, we run the actual ramsete command
-        .andThen(ramseteCommand)
+    //    .andThen(ramseteCommand)
 
         // Finally, we make sure that the robot stops
-        .andThen(new InstantCommand(() -> m_drivetrain.tankDriveVolts(0, 0), m_drivetrain));
-  } 
+    //    .andThen(new InstantCommand(() -> m_drivetrain.tankDriveVolts(0, 0), m_drivetrain));
+    }
+
 
   /**
    * Use this method to define your button->command mappings. Buttons can be created by
@@ -153,6 +181,7 @@ public class RobotContainer {
 
     // Setup SmartDashboard options
     m_chooser.setDefaultOption("Ramsete Trajectory", generateRamseteCommand());
+    //m_chooser.setDefaultOption("Ramsete Trajectory", getAutonomousCommand());
     m_chooser.addOption("Auto Routine Distance", new AutonomousDistance(m_drivetrain));
     m_chooser.addOption("Auto Routine Time", new AutonomousTime(m_drivetrain));
     
@@ -165,10 +194,11 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    return m_chooser.getSelected();
-    
+      return m_chooser.getSelected();
 
-  }
+  } 
+
+  
 
   /**
    * Use this to pass the teleop command to the main {@link Robot} class.
