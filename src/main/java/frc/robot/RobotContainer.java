@@ -117,7 +117,8 @@ public class RobotContainer {
         config);
     */
     private Command generateRamseteCommand() {
-      String trajectoryJSON = "paths/unknown.wpilib.json";
+      //String trajectoryJSON = "paths/unknown.wpilib.json";
+      String trajectoryJSON = "paths/course1.wpilib.json";
       Trajectory exampleTrajectory = new Trajectory();
       try {
          Path trajectoryPath = Filesystem.getDeployDirectory().toPath().resolve(trajectoryJSON);

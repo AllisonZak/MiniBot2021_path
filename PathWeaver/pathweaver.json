@@ -4,6 +4,6 @@
   "maxVelocity": 32.5,
   "maxAcceleration": 32.5,
   "wheelBase": 5.6,
-  "gameName": "Slalom Path",
-  "outputDir": ".."
+  "gameName": "color_conundrum",
+  "outputDir": ""
 }
